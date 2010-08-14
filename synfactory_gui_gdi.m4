@@ -82,6 +82,12 @@ static void guiSetTextAlignment(Context_ptr_t aContext, int aAlignment)
 	currentAlignment = aAlignment;
 }
 
+static void guiDrawPoint(Context_ptr_t aContext, int aX, int aY) {
+	// there is no GDI point function, so a filled rectangle with width 1, height 1 must be drawn
+	RECT myRect={aX, aY, aX+1, aY+1};
+	(void)FillRect(aContext->currentHdc, &myRect, theCurrentBrush);
+}
+
 static void guiDrawLine(Context_ptr_t aContext, int aStartX, int aStartY, int aEndX, int aEndY) {
 	(void)MoveToEx(aContext->currentHdc, aStartX, aStartY, NULL);
 	(void)LineTo(aContext->currentHdc, aEndX, aEndY);

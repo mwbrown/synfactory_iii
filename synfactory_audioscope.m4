@@ -3,8 +3,11 @@ module([audio output scope])
 DefWindow([theAudioOutputScope], "Audio Output Scope", [audioOutputScopeHandler], 400, 400)
 
 DefSetVar([int], [theAudioOutputScopeMode], [0])
+DefSetVar([int], [theAudioOutputScopeDot], [0])
 SynFileDecimal([OUTPUT_SCOPE_MODE], [theAudioOutputScopeMode]);
+SynFileDecimal([OUTPUT_SCOPE_DOT],  [theAudioOutputScopeDot]);
 WatchVar([theAudioOutputScopeMode], [theAudioOutputScopeRefresh = true;])
+WatchVar([theAudioOutputScopeDot],  [theAudioOutputScopeRefresh = true;])
 
 PrefColorSelector([OUTPUT_SCOPE_BGCOL], [Audio Output Scope Color], [theAudioOutputScopeBgColor], [COLOR_BLACK])
 PrefColorSelector([OUTPUT_SCOPE_BLINE], [Audio Output Scope Base Color], [theAudioOutputScopeBaseColor], [0x00BB00])
@@ -28,15 +31,24 @@ static void drawScopeTopBottom(Context_ptr_t aContext) {
 
 	yRange=((aContext->clientRect.bottom-16)/4);
 
-	guiSelectPenColor(aContext, theAudioOutputScopeTraceColor, 1);
-	guiDrawLineFrom(aContext, 0, yRange-(audioScopeBufferL[0]*yRange)/32768);
-	for(cnt=1; cnt<OUTPUT_SCOPE_BUFFER_SIZE; cnt++) {
-		guiDrawLineTo(aContext, (cnt*aContext->clientRect.right)/OUTPUT_SCOPE_BUFFER_SIZE, yRange-(audioScopeBufferL[cnt]*yRange)/32768);
-	}
+	if(theAudioOutputScopeDot == 0) {
+		guiSelectPenColor(aContext, theAudioOutputScopeTraceColor, 1);
+		guiDrawLineFrom(aContext, 0, yRange-(audioScopeBufferL[0]*yRange)/32768);
+		for(cnt=1; cnt<OUTPUT_SCOPE_BUFFER_SIZE; cnt++) {
+			guiDrawLineTo(aContext, (cnt*aContext->clientRect.right)/OUTPUT_SCOPE_BUFFER_SIZE, yRange-(audioScopeBufferL[cnt]*yRange)/32768);
+		}
 
-	guiDrawLineFrom(aContext, 0, 3*yRange+16-(audioScopeBufferR[0]*yRange)/32768);
-	for(cnt=1; cnt<OUTPUT_SCOPE_BUFFER_SIZE; cnt++) {
-		guiDrawLineTo(aContext, (cnt*aContext->clientRect.right)/OUTPUT_SCOPE_BUFFER_SIZE, 3*yRange+16-(audioScopeBufferR[cnt]*yRange)/32768);
+		guiDrawLineFrom(aContext, 0, 3*yRange+16-(audioScopeBufferR[0]*yRange)/32768);
+		for(cnt=1; cnt<OUTPUT_SCOPE_BUFFER_SIZE; cnt++) {
+			guiDrawLineTo(aContext, (cnt*aContext->clientRect.right)/OUTPUT_SCOPE_BUFFER_SIZE, 3*yRange+16-(audioScopeBufferR[cnt]*yRange)/32768);
+		}
+	} else {
+		guiSelectFillColor(aContext, theAudioOutputScopeTraceColor);
+		for(cnt = 0; cnt < OUTPUT_SCOPE_BUFFER_SIZE; cnt++) {
+			guiDrawPoint(aContext, (cnt*aContext->clientRect.right)/OUTPUT_SCOPE_BUFFER_SIZE, yRange-(audioScopeBufferL[cnt]*yRange)/32768);
+			guiDrawPoint(aContext, (cnt*aContext->clientRect.right)/OUTPUT_SCOPE_BUFFER_SIZE, 3*yRange+16-(audioScopeBufferR[cnt]*yRange)/32768);
+		}
+		guiSelectFillColor(aContext, theAudioOutputScopeBgColor);
 	}
 	
 	// Draw base lines
@@ -68,17 +80,25 @@ static void drawScopeLeftRight(Context_ptr_t aContext) {
 
 	guiSelectPenColor(aContext, theAudioOutputScopeTraceColor, 1);
 	
-	
-	guiDrawLineFrom(aContext, 0, yRange-(audioScopeBufferL[0]*yRange)/32768);
-	for(cnt=1; cnt<OUTPUT_SCOPE_BUFFER_SIZE; cnt++) {
-		guiDrawLineTo(aContext, (cnt*xRange)/OUTPUT_SCOPE_BUFFER_SIZE, yRange-(audioScopeBufferL[cnt]*yRange)/32768);
-	}
+	if(theAudioOutputScopeDot == 0) {
+		guiDrawLineFrom(aContext, 0, yRange-(audioScopeBufferL[0]*yRange)/32768);
+		for(cnt=1; cnt<OUTPUT_SCOPE_BUFFER_SIZE; cnt++) {
+			guiDrawLineTo(aContext, (cnt*xRange)/OUTPUT_SCOPE_BUFFER_SIZE, yRange-(audioScopeBufferL[cnt]*yRange)/32768);
+		}
 
-	guiDrawLineFrom(aContext, xRange+16, yRange-(audioScopeBufferR[0]*yRange)/32768);
-	for(cnt=1; cnt<OUTPUT_SCOPE_BUFFER_SIZE; cnt++) {
-		guiDrawLineTo(aContext, (cnt*xRange)/OUTPUT_SCOPE_BUFFER_SIZE+xRange+16, yRange-(audioScopeBufferR[cnt]*yRange)/32768);
+		guiDrawLineFrom(aContext, xRange+16, yRange-(audioScopeBufferR[0]*yRange)/32768);
+		for(cnt=1; cnt<OUTPUT_SCOPE_BUFFER_SIZE; cnt++) {
+			guiDrawLineTo(aContext, (cnt*xRange)/OUTPUT_SCOPE_BUFFER_SIZE+xRange+16, yRange-(audioScopeBufferR[cnt]*yRange)/32768);
+		}
+	} else {
+		// guiDrawPoint requires a fill color... this is a side effect of using filled rectangles
+		guiSelectFillColor(aContext, theAudioOutputScopeTraceColor);
+		for(cnt = 0; cnt < OUTPUT_SCOPE_BUFFER_SIZE; cnt++) {
+			guiDrawPoint(aContext, (cnt*xRange)/OUTPUT_SCOPE_BUFFER_SIZE, yRange-(audioScopeBufferL[cnt]*yRange)/32768);
+			guiDrawPoint(aContext, (cnt*xRange)/OUTPUT_SCOPE_BUFFER_SIZE+xRange+16, yRange-(audioScopeBufferR[cnt]*yRange)/32768);
+		}
+		guiSelectFillColor(aContext, theAudioOutputScopeBgColor);
 	}
-	
 
 	// Draw base lines
 	guiSelectPenColor(aContext, theAudioOutputScopeBaseColor, 1);
@@ -116,6 +136,9 @@ static void audioOutputScopeHandler(Context_ptr_t aContext) {
 		break;
 	case GUI_EVENT_MOUSE_R_DOWN:
 		]SetVar([theAudioOutputScopeMode], [1-theAudioOutputScopeMode])[
+		break;
+	case GUI_EVENT_MOUSE_M_DOWN:
+		]SetVar([theAudioOutputScopeDot], [1-theAudioOutputScopeDot])[
 		break;
 	default:
 		break;
